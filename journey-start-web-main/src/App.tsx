@@ -8,6 +8,8 @@ import Learn from "./pages/Learn";
 import NotFound from "./pages/NotFound";
 import GrammarFundamentals from "./pages/GrammarFundamentals";
 import PartsOfSpeech from "./pages/PartsOfSpeech";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/learn" element={<Learn />} />
           <Route path="/course/grammar-fundamentals" element={<GrammarFundamentals />} />
           <Route path="/course/grammar-fundamentals/parts-of-speech" element={<PartsOfSpeech />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
