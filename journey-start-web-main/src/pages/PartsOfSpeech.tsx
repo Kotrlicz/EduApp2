@@ -33,7 +33,7 @@ const lessonPages = [
       </>
     ),
   },
-];
+]
 
 const PartsOfSpeech = () => {
   const navigate = useNavigate();
