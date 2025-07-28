@@ -122,16 +122,6 @@
     background: var(--gradient-button);
   }
   
-  .hero-button::before {
-    @apply absolute inset-0 rounded-full opacity-0 transition-opacity duration-300;
-    content: '';
-    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
-  }
-  
-  .hero-button:hover::before {
-    @apply opacity-100;
-  }
-  
   .hero-button span {
     @apply relative z-10;
   }

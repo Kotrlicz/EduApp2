@@ -10,6 +10,13 @@ import GrammarFundamentals from "./pages/GrammarFundamentals";
 import PartsOfSpeech from "./pages/PartsOfSpeech";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import ChooseQuizType from "./pages/ChooseQuizType";
+import HighlightQuiz from "./pages/HighlightQuiz";
+import ModeSelection from "./pages/ModeSelection";
+import RacingGame from "./pages/RacingGame";
+import GrammarRunner from "./pages/GrammarRunner";
+import GrammarRunnerModeSelection from "./pages/GrammarRunnerModeSelection";
 
 const queryClient = new QueryClient();
 
@@ -21,11 +28,18 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Welcome />} />
+          <Route path="/choose-mode" element={<ModeSelection />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/course/grammar-fundamentals" element={<GrammarFundamentals />} />
           <Route path="/course/grammar-fundamentals/parts-of-speech" element={<PartsOfSpeech />} />
+          <Route path="/course/grammar-fundamentals/parts-of-speech/choose-quiz" element={<ChooseQuizType />} />
+          <Route path="/course/grammar-fundamentals/parts-of-speech/highlight-quiz" element={<HighlightQuiz />} />
+          <Route path="/racing-game" element={<RacingGame />} />
+          <Route path="/grammar-runner" element={<GrammarRunnerModeSelection />} />
+          <Route path="/grammar-runner/:courseId" element={<GrammarRunner />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
