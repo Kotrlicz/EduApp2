@@ -213,27 +213,33 @@ const GrammarRunnerModeSelection = () => {
                 </div>
 
                 {/* Action Button */}
-                <div className="p-6 mt-auto">
+                <div className="p-6 mt-auto h-16 flex items-center">
                   <div 
-                    className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-all duration-200 ${
+                    className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-all duration-200 relative overflow-hidden ${
                       isCourseCompleted(course.id) 
                         ? 'bg-green-500 text-white hover:bg-green-600' 
                         : `bg-gradient-to-r ${course.gradient} text-white hover:opacity-90`
                     }`}
                   >
-                    {isCourseCompleted(course.id) ? (
-                      <>
-                        <Trophy className="w-4 h-4 mr-2 inline" />
-                        Completed
-                      </>
-                    ) : (
-                      course.title === 'Parts of Speech' ? 'Slovní druhy' :
+                    {/* Default text (course name) */}
+                    <span className={`transition-all duration-200 ${
+                      isCourseCompleted(course.id) ? 'group-hover:opacity-0' : ''
+                    }`}>
+                      {course.title === 'Parts of Speech' ? 'Slovní druhy' :
                       course.title === 'Articles and Determiners' ? 'Členy' :
                       course.title === 'Subject–Verb Agreement' ? 'Shoda podmětu s přísudkem' :
                       course.title === 'Question Formation' ? 'Tvoření otázek' :
                       course.title === 'Negatives' ? 'Zápor' :
-                      course.title === 'Countable and Uncountable Nouns' ? 'Počitatelná a nepočitatelná podstatná jména' :
-                      'Start Challenge'
+                      course.title === 'Countable and Uncountable Nouns' ? 'Countable/Uncountable' :
+                      'Start Challenge'}
+                    </span>
+                    
+                    {/* Hover text (Completed) - only for completed courses */}
+                    {isCourseCompleted(course.id) && (
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
+                        <Trophy className="w-4 h-4 mr-2" />
+                        Completed
+                      </span>
                     )}
                   </div>
                 </div>
@@ -248,7 +254,7 @@ const GrammarRunnerModeSelection = () => {
           <div className="mt-12 text-center">
             <div className="bg-card rounded-lg p-6 max-w-2xl mx-auto">
               <h3 className="text-lg font-semibold mb-3">How to Play</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span>Click correct sentences to jump</span>
@@ -261,6 +267,17 @@ const GrammarRunnerModeSelection = () => {
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   <span>Unlimited gameplay until you crash</span>
                 </div>
+              </div>
+              
+              {/* Completion Requirement */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
+                <div className="flex items-center justify-center gap-2 text-orange-800">
+                  <Target className="w-4 h-4" />
+                  <span className="font-semibold">Course Completion Requirement</span>
+                </div>
+                <p className="text-orange-700 text-sm mt-1">
+                  You need to score at least <strong>100 points</strong> to complete a course and earn the completion badge.
+                </p>
               </div>
             </div>
           </div>

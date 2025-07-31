@@ -8,6 +8,9 @@ import Learn from "./pages/Learn";
 import NotFound from "./pages/NotFound";
 import GrammarFundamentals from "./pages/GrammarFundamentals";
 import PartsOfSpeech from "./pages/PartsOfSpeech";
+import ArticlesAndDeterminers from "./pages/ArticlesAndDeterminers";
+import ArticlesAndDeterminersQuizType from "./pages/ArticlesAndDeterminersQuizType";
+import ArticlesAndDeterminersPresentation from "./pages/ArticlesAndDeterminersPresentation";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="/course/grammar-fundamentals/parts-of-speech" element={<PartsOfSpeech />} />
           <Route path="/course/grammar-fundamentals/parts-of-speech/choose-quiz" element={<ChooseQuizType />} />
           <Route path="/course/grammar-fundamentals/parts-of-speech/highlight-quiz" element={<HighlightQuiz />} />
+          <Route path="/course/grammar-fundamentals/articles-and-determiners" element={<ArticlesAndDeterminers />} />
+          <Route path="/course/grammar-fundamentals/articles-and-determiners/choose-quiz" element={<ArticlesAndDeterminersQuizType />} />
+          <Route path="/course/grammar-fundamentals/articles-and-determiners/presentation" element={<ArticlesAndDeterminersPresentation />} />
           <Route path="/racing-game" element={<RacingGame />} />
           <Route path="/grammar-runner" element={<GrammarRunnerModeSelection />} />
           <Route path="/grammar-runner/:courseId" element={<GrammarRunner />} />

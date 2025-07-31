@@ -10,10 +10,12 @@ interface Question {
 }
 
 interface Car {
-  x: number;
-  y: number;
+  x: number; // This will stay constant (middle of screen)
+  y: number; // Lane position
   speed: number;
   progress: number;
+  baseSpeed: number; // Base speed for the car
+  visualOffset: number; // Visual offset from center based on speed difference
 }
 
 // Image assets
@@ -23,8 +25,8 @@ playerCarImg.src = '/car-player.png'; // Your blue car PNG
 const computerCarImg = new Image();
 computerCarImg.src = '/car-computer.png'; // Your red car PNG
 
-const trackImg = new Image();
-trackImg.src = '/track-background.png'; // Your track PNG
+const trackBackgroundImg = new Image();
+trackBackgroundImg.src = '/racing-desktop-bg.png'; // Your desktop racing background
 
 const sampleQuestions: Question[] = [
   { word: "run", correctAnswer: "verb", options: ["noun", "verb", "adjective", "adverb"] },
@@ -44,33 +46,46 @@ const RacingGame = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameTime, setGameTime] = useState(0);
   const [bestTime, setBestTime] = useState<number | null>(null);
-  const [playerCar, setPlayerCar] = useState<Car>({ x: 50, y: 200, speed: 0, progress: 0 });
-  const [computerCar, setComputerCar] = useState<Car>({ x: 50, y: 300, speed: 0, progress: 0 });
+  const [playerCar, setPlayerCar] = useState<Car>({ x: 400, y: 200, speed: 100, progress: 0, baseSpeed: 100, visualOffset: 0 });
+  const [computerCar, setComputerCar] = useState<Car>({ x: 400, y: 300, speed: 100, progress: 0, baseSpeed: 100, visualOffset: 0 });
   const [gameTimer, setGameTimer] = useState<NodeJS.Timeout | null>(null);
   const [computerTimer, setComputerTimer] = useState<NodeJS.Timeout | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [progress, setProgress] = useState<any>(null);
+  const [questionsAnswered, setQuestionsAnswered] = useState(0);
+  const [trackOffset, setTrackOffset] = useState(0);
 
   // Responsive canvas dimensions
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 800, height: 400 });
-  const FINISH_LINE = 700;
+  const FINISH_LINE = 5000;
 
   // Set responsive canvas dimensions
   useEffect(() => {
     const updateCanvasSize = () => {
       const isMobile = window.innerWidth < 768;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      
       if (isMobile) {
-        setCanvasDimensions({ width: 350, height: 200 });
+        if (isPortrait) {
+          // Portrait mobile - smaller canvas to fit better
+          setCanvasDimensions({ width: 350, height: 200 });
+        } else {
+          // Landscape mobile - can use more space
+          setCanvasDimensions({ width: 500, height: 250 });
+        }
       } else {
-        setCanvasDimensions({ width: 800, height: 400 });
+        setCanvasDimensions({ width: 1000, height: 500 });
       }
     };
     
     updateCanvasSize();
     window.addEventListener('resize', updateCanvasSize);
-    return () => window.removeEventListener('resize', updateCanvasSize);
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+    };
   }, []);
 
   // Load user and data from Supabase
@@ -113,6 +128,20 @@ const RacingGame = () => {
             setBestTime(bestTimeData.best_time);
           } else {
             console.log('No progress record found for user (first time playing)');
+          }
+          
+          // Load quiz progress to check completion status
+          const { data: quizProgressData, error: quizProgressError } = await supabase
+            .from('quiz_progress')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (quizProgressError) {
+            console.error('Error loading quiz progress:', quizProgressError);
+          } else {
+            console.log('Loaded quiz progress:', quizProgressData);
+            setProgress(quizProgressData);
           }
           
           // Load questions from Supabase
@@ -160,7 +189,7 @@ const RacingGame = () => {
     console.log('RacingGame component mounted - starting image loading...');
     
     let loadedCount = 0;
-    const totalImages = 2; // Only 2 images since we don't have track image yet
+    const totalImages = 3; // Now including track background
 
     const checkAllLoaded = () => {
       loadedCount++;
@@ -171,29 +200,59 @@ const RacingGame = () => {
       }
     };
 
-    playerCarImg.onload = () => {
+    // Reset image loading state
+    setImagesLoaded(false);
+
+    // Create new image instances to ensure fresh loading
+    const newPlayerCarImg = new Image();
+    const newComputerCarImg = new Image();
+    const newTrackBackgroundImg = new Image();
+
+    newPlayerCarImg.onload = () => {
       console.log('Player car image loaded successfully');
       checkAllLoaded();
     };
-    computerCarImg.onload = () => {
+    newComputerCarImg.onload = () => {
       console.log('Computer car image loaded successfully');
+      checkAllLoaded();
+    };
+    newTrackBackgroundImg.onload = () => {
+      console.log('Track background image loaded successfully');
       checkAllLoaded();
     };
 
     // Handle image loading errors
-    playerCarImg.onerror = () => {
+    newPlayerCarImg.onerror = () => {
       console.error('Player car image failed to load');
-      console.error('Tried to load:', playerCarImg.src);
+      console.error('Tried to load:', newPlayerCarImg.src);
+      checkAllLoaded(); // Still count as loaded to prevent infinite waiting
     };
-    computerCarImg.onerror = () => {
+    newComputerCarImg.onerror = () => {
       console.error('Computer car image failed to load');
-      console.error('Tried to load:', computerCarImg.src);
+      console.error('Tried to load:', newComputerCarImg.src);
+      checkAllLoaded(); // Still count as loaded to prevent infinite waiting
     };
+    newTrackBackgroundImg.onerror = () => {
+      console.error('Track background image failed to load');
+      console.error('Tried to load:', newTrackBackgroundImg.src);
+      checkAllLoaded(); // Still count as loaded to prevent infinite waiting
+    };
+
+    // Set image sources
+    newPlayerCarImg.src = '/car-player.png';
+    newComputerCarImg.src = '/car-computer.png';
+    newTrackBackgroundImg.src = '/racing-desktop-bg.png';
+
+    // Update global image references
+    playerCarImg.src = newPlayerCarImg.src;
+    computerCarImg.src = newComputerCarImg.src;
+    trackBackgroundImg.src = newTrackBackgroundImg.src;
 
     // Log the image sources
     console.log('Loading images from:', {
-      playerCar: playerCarImg.src,
-      computerCar: computerCarImg.src
+      playerCar: newPlayerCarImg.src,
+      computerCar: newComputerCarImg.src,
+      trackBackground: newTrackBackgroundImg.src
     });
 
     // Test if images are accessible
@@ -216,13 +275,24 @@ const RacingGame = () => {
         }
       })
       .catch(error => console.error('❌ Error checking car-computer.png:', error));
+
+    fetch('/racing-desktop-bg.png')
+      .then(response => {
+        if (response.ok) {
+          console.log('✅ racing-desktop-bg.png is accessible');
+        } else {
+          console.error('❌ racing-desktop-bg.png not found (status:', response.status, ')');
+        }
+      })
+      .catch(error => console.error('❌ Error checking racing-desktop-bg.png:', error));
   }, []);
 
   const startGame = () => {
     setGameState('playing');
     setGameTime(0);
-    setPlayerCar({ x: 50, y: 200, speed: 0, progress: 0 });
-    setComputerCar({ x: 50, y: 300, speed: 0, progress: 0 });
+    setQuestionsAnswered(0);
+    setPlayerCar({ x: 400, y: 200, speed: 100, progress: 0, baseSpeed: 100, visualOffset: 0 });
+    setComputerCar({ x: 400, y: 300, speed: 100, progress: 0, baseSpeed: 100, visualOffset: 0 });
     generateNewQuestion();
   };
 
@@ -233,8 +303,8 @@ const RacingGame = () => {
     console.log('Generated new question:', randomQuestion);
     setCurrentQuestion(randomQuestion);
     
-    // Set random timer for computer (5-10 seconds)
-    const computerTime = Math.random() * 5000 + 5000; // 5-10 seconds in milliseconds
+    // Set random timer for computer (2-5 seconds)
+    const computerTime = Math.random() * 3000 + 2000; // 2-5 seconds in milliseconds
     setTimeLeft(computerTime / 1000);
     
     // Computer will answer correctly after the timer
@@ -249,22 +319,14 @@ const RacingGame = () => {
 
   const computerAnswer = () => {
     setComputerCar(prev => {
-      const newProgress = prev.progress + 20;
-      const newX = Math.min(prev.x + 20, FINISH_LINE);
-      
-      // Check if computer won
-      if (newProgress >= FINISH_LINE) {
-        setTimeout(() => endGame('computer'), 100);
-      } else {
-        generateNewQuestion();
-      }
-      
+      // Computer gets the same speed boost as player
+      const newSpeed = prev.speed + 10; // No speed cap
       return {
         ...prev,
-        progress: newProgress,
-        x: newX
+        speed: newSpeed
       };
     });
+    generateNewQuestion();
   };
 
   const handleAnswer = (answer: string) => {
@@ -281,45 +343,29 @@ const RacingGame = () => {
     }
 
     if (answer === currentQuestion.correctAnswer) {
-      console.log('✅ Player answered correctly - moving forward');
-      // Player answers correctly
+      console.log('✅ Player answered correctly - increasing speed');
+      setQuestionsAnswered(prev => prev + 1);
+      // Player answers correctly - increase speed
       setPlayerCar(prev => {
-        const newProgress = prev.progress + 20;
-        const newX = Math.min(prev.x + 20, FINISH_LINE);
-        
-        // Check if player won
-        if (newProgress >= FINISH_LINE) {
-          setTimeout(() => endGame('player'), 100);
-        } else {
-          generateNewQuestion();
-        }
-        
+        const newSpeed = prev.speed + 10; // Increase speed, no cap
         return {
           ...prev,
-          progress: newProgress,
-          x: newX
+          speed: newSpeed
         };
       });
+      generateNewQuestion();
     } else {
-      console.log('❌ Player answered incorrectly - computer moves forward');
-      // Player answers incorrectly - computer moves forward
-      setComputerCar(prev => {
-        const newProgress = prev.progress + 20;
-        const newX = Math.min(prev.x + 20, FINISH_LINE);
-        
-        // Check if computer won
-        if (newProgress >= FINISH_LINE) {
-          setTimeout(() => endGame('computer'), 100);
-        } else {
-          generateNewQuestion();
-        }
-        
+      console.log('❌ Player answered incorrectly - decreasing speed');
+      setQuestionsAnswered(prev => prev + 1);
+      // Player answers incorrectly - decrease speed
+      setPlayerCar(prev => {
+        const newSpeed = Math.max(prev.speed - 10, 50); // Decrease speed, min 50 kph
         return {
           ...prev,
-          progress: newProgress,
-          x: newX
+          speed: newSpeed
         };
       });
+      generateNewQuestion();
     }
   };
 
@@ -342,7 +388,7 @@ const RacingGame = () => {
                   user_id: user.id,
                   game_time: currentTime,
                   won: true,
-                  questions_answered: Math.floor(playerCar.progress / 20), // Each correct answer moves 20 pixels
+                  questions_answered: questionsAnswered,
                   date_played: new Date().toISOString()
                 });
               
@@ -388,11 +434,17 @@ const RacingGame = () => {
         // Mark racing game as completed if player won
         if (winner === 'player') {
           try {
+            // Check if all three quiz types are completed
+            const allQuizzesCompleted = true && // Racing game is being completed
+              progress?.completed === true && // Highlight quiz completed
+              progress?.grammar_runner_parts_of_speech_completed === true; // Grammar runner completed
+            
             await supabase
               .from('quiz_progress')
               .upsert({
                 user_id: user.id,
-                racing_game_completed: true // Add racing game completion flag
+                racing_game_completed: true, // Add racing game completion flag
+                parts_of_speech_course_completed: allQuizzesCompleted // Update overall course completion
               }, {
                 onConflict: 'user_id'
               });
@@ -417,56 +469,195 @@ const RacingGame = () => {
   };
 
   const drawGame = (ctx: CanvasRenderingContext2D) => {
+    const isMobile = window.innerWidth < 768;
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const isVerticalRace = isMobile && isPortrait;
+
     // Clear canvas
     ctx.fillStyle = '#87CEEB'; // Sky blue background
     ctx.fillRect(0, 0, canvasDimensions.width, canvasDimensions.height);
 
-    // Draw track background (simple gray road for now)
-    ctx.fillStyle = '#696969'; // Gray road
-    ctx.fillRect(0, 150, canvasDimensions.width, 200);
+    if (isVerticalRace) {
+             // Vertical racing for mobile portrait
+       // Draw moving track with perspective effect (vertical) - much wider
+       ctx.fillStyle = '#696969'; // Gray road
+       ctx.fillRect(canvasDimensions.width / 2 - 75, 0, 150, canvasDimensions.height);
 
-    // Draw finish line
-    ctx.fillStyle = '#FFD700';
-    ctx.fillRect(FINISH_LINE, 150, 10, 200);
+      // Draw moving road lines for speed effect (vertical)
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([20, 20]);
+      
+             // Draw multiple moving lines (bottom to top for upward motion illusion)
+       for (let i = 0; i < 5; i++) {
+         const lineY = (canvasDimensions.height + trackOffset + i * 100) % (canvasDimensions.height + 100);
+         ctx.beginPath();
+         ctx.moveTo(canvasDimensions.width / 2 - 65, lineY);
+         ctx.lineTo(canvasDimensions.width / 2 + 65, lineY);
+         ctx.stroke();
+       }
 
-    // Draw player car image (if loaded)
-    if (imagesLoaded && playerCarImg.complete) {
-      // Calculate aspect ratio to prevent stretching
-      const carWidth = 40;
-      const carHeight = (playerCarImg.height / playerCarImg.width) * carWidth;
-      ctx.drawImage(playerCarImg, playerCar.x, playerCar.y, carWidth, carHeight);
-    } else {
-      // Fallback to rectangle if image not loaded
+             // Calculate car positions based on progress (vertical movement)
+       const progressDiff = playerCar.progress - computerCar.progress;
+       const maxOffset = 120; // Much larger offset for better separation
+       
+       // Base positions - cars start in the center of the track
+       let playerY = canvasDimensions.height - 50;
+       let computerY = canvasDimensions.height - 50;
+       
+       // Apply offset based on progress difference
+       if (progressDiff > 0) {
+         // Player is ahead - move player up, computer down
+         playerY = canvasDimensions.height - 50 - Math.min(progressDiff * 0.3, maxOffset);
+         computerY = canvasDimensions.height - 50 + Math.min(progressDiff * 0.3, maxOffset);
+       } else {
+         // Computer is ahead - move computer up, player down
+         playerY = canvasDimensions.height - 50 + Math.min(Math.abs(progressDiff) * 0.3, maxOffset);
+         computerY = canvasDimensions.height - 50 - Math.min(Math.abs(progressDiff) * 0.3, maxOffset);
+       }
+
+      // Draw player car image (if loaded) - vertical orientation
+      if (imagesLoaded && playerCarImg.complete) {
+        const carWidth = 30;
+        const carHeight = (playerCarImg.height / playerCarImg.width) * carWidth;
+        ctx.save();
+        ctx.translate(canvasDimensions.width / 2 - 60, playerY);
+        ctx.rotate(-Math.PI / 2); // Rotate 90 degrees counterclockwise
+        ctx.drawImage(playerCarImg, -carHeight/2, -carWidth/2, carHeight, carWidth);
+        ctx.restore();
+      } else {
+        // Fallback to rectangle if image not loaded
+        ctx.fillStyle = '#0066CC';
+        ctx.fillRect(canvasDimensions.width / 2 - 60, playerY, 20, 30);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(canvasDimensions.width / 2 - 55, playerY + 5, 10, 10);
+      }
+
+      // Draw computer car image (if loaded) - vertical orientation
+      if (imagesLoaded && computerCarImg.complete) {
+        const carWidth = 30;
+        const carHeight = (computerCarImg.height / computerCarImg.width) * carWidth;
+        ctx.save();
+        ctx.translate(canvasDimensions.width / 2 + 60, computerY);
+        ctx.rotate(-Math.PI / 2); // Rotate 90 degrees counterclockwise
+        ctx.drawImage(computerCarImg, -carHeight/2, -carWidth/2, carHeight, carWidth);
+        ctx.restore();
+      } else {
+        // Fallback to rectangle if image not loaded
+        ctx.fillStyle = '#CC0000';
+        ctx.fillRect(canvasDimensions.width / 2 + 40, computerY, 20, 30);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(canvasDimensions.width / 2 + 45, computerY + 5, 10, 10);
+      }
+
+      // Draw progress bars (vertical)
+      ctx.fillStyle = '#333';
+      ctx.fillRect(10, 10, 20, 100);
       ctx.fillStyle = '#0066CC';
-      ctx.fillRect(playerCar.x, playerCar.y, 40, 20);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(playerCar.x + 5, playerCar.y + 5, 10, 10);
-    }
+      ctx.fillRect(10, 10 + (100 - (playerCar.progress / FINISH_LINE) * 100), 20, (playerCar.progress / FINISH_LINE) * 100);
 
-    // Draw computer car image (if loaded)
-    if (imagesLoaded && computerCarImg.complete) {
-      // Calculate aspect ratio to prevent stretching
-      const carWidth = 40;
-      const carHeight = (computerCarImg.height / computerCarImg.width) * carWidth;
-      ctx.drawImage(computerCarImg, computerCar.x, computerCar.y, carWidth, carHeight);
-    } else {
-      // Fallback to rectangle if image not loaded
+      ctx.fillStyle = '#333';
+      ctx.fillRect(40, 10, 20, 100);
       ctx.fillStyle = '#CC0000';
-      ctx.fillRect(computerCar.x, computerCar.y, 40, 20);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(computerCar.x + 5, computerCar.y + 5, 10, 10);
+      ctx.fillRect(40, 10 + (100 - (computerCar.progress / FINISH_LINE) * 100), 20, (computerCar.progress / FINISH_LINE) * 100);
+
+         } else {
+       // Horizontal racing for desktop and mobile landscape
+       
+       // Draw background image if loaded (for desktop only)
+       if (imagesLoaded && trackBackgroundImg.complete && canvasDimensions.width >= 800) {
+         ctx.drawImage(trackBackgroundImg, 0, 0, canvasDimensions.width, canvasDimensions.height);
+       } else {
+         // Fallback to solid colors if image not loaded
+         ctx.fillStyle = '#87CEEB'; // Sky blue background
+         ctx.fillRect(0, 0, canvasDimensions.width, canvasDimensions.height);
+         
+         // Draw moving track with perspective effect (much wider)
+         ctx.fillStyle = '#696969'; // Gray road
+         ctx.fillRect(0, 100, canvasDimensions.width, 300); // Much wider track
+       }
+
+       // Draw moving road lines for speed effect
+       ctx.strokeStyle = '#FFFFFF';
+       ctx.lineWidth = 3;
+       ctx.setLineDash([20, 20]);
+       
+       // Draw multiple moving lines (right to left for forward motion illusion)
+       for (let i = 0; i < 5; i++) {
+         const lineX = (canvasDimensions.width - trackOffset - i * 100) % (canvasDimensions.width + 100);
+         ctx.beginPath();
+         ctx.moveTo(lineX, 150);
+         ctx.lineTo(lineX, 350);
+         ctx.stroke();
+       }
+
+                           // Calculate car positions based on progress (horizontal movement)
+        const progressDiff = playerCar.progress - computerCar.progress;
+        const maxOffset = 150; // Much larger offset for better separation
+        
+        // Center position on the track - much more centered
+        const trackCenter = canvasDimensions.width / 2;
+        const trackWidth = 300; // Much wider track
+        
+        // Base positions - cars start in the center of the track
+        let playerX = trackCenter;
+        let computerX = trackCenter;
+        
+        // Apply offset based on progress difference
+        if (progressDiff > 0) {
+          // Player is ahead - move player right, computer left
+          playerX = trackCenter + Math.min(progressDiff * 0.3, maxOffset);
+          computerX = trackCenter - Math.min(progressDiff * 0.3, maxOffset);
+        } else {
+          // Computer is ahead - move computer right, player left
+          playerX = trackCenter - Math.min(Math.abs(progressDiff) * 0.3, maxOffset);
+          computerX = trackCenter + Math.min(Math.abs(progressDiff) * 0.3, maxOffset);
+        }
+        
+        // Ensure cars stay within track boundaries (much more generous)
+        const trackLeft = trackCenter - trackWidth / 2 + 50; // 50px margin from edge
+        const trackRight = trackCenter + trackWidth / 2 - 50; // 50px margin from edge
+        
+        playerX = Math.max(trackLeft, Math.min(trackRight, playerX));
+        computerX = Math.max(trackLeft, Math.min(trackRight, computerX));
+
+      // Draw player car image (if loaded)
+      if (imagesLoaded && playerCarImg.complete) {
+        const carWidth = 40;
+        const carHeight = (playerCarImg.height / playerCarImg.width) * carWidth;
+        ctx.drawImage(playerCarImg, playerX, playerCar.y, carWidth, carHeight);
+      } else {
+        // Fallback to rectangle if image not loaded
+        ctx.fillStyle = '#0066CC';
+        ctx.fillRect(playerX, playerCar.y, 40, 20);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(playerX + 5, playerCar.y + 5, 10, 10);
+      }
+
+      // Draw computer car image (if loaded)
+      if (imagesLoaded && computerCarImg.complete) {
+        const carWidth = 40;
+        const carHeight = (computerCarImg.height / computerCarImg.width) * carWidth;
+        ctx.drawImage(computerCarImg, computerX, computerCar.y, carWidth, carHeight);
+      } else {
+        // Fallback to rectangle if image not loaded
+        ctx.fillStyle = '#CC0000';
+        ctx.fillRect(computerX, computerCar.y, 40, 20);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(computerX + 5, computerCar.y + 5, 10, 10);
+      }
+
+      // Draw progress bars (horizontal)
+      ctx.fillStyle = '#333';
+      ctx.fillRect(10, 10, 200, 20);
+      ctx.fillStyle = '#0066CC';
+      ctx.fillRect(10, 10, (playerCar.progress / FINISH_LINE) * 200, 20);
+
+      ctx.fillStyle = '#333';
+      ctx.fillRect(10, 40, 200, 20);
+      ctx.fillStyle = '#CC0000';
+      ctx.fillRect(10, 40, (computerCar.progress / FINISH_LINE) * 200, 20);
     }
-
-    // Draw progress bars
-    ctx.fillStyle = '#333';
-    ctx.fillRect(10, 10, 200, 20);
-    ctx.fillStyle = '#0066CC';
-    ctx.fillRect(10, 10, (playerCar.progress / FINISH_LINE) * 200, 20);
-
-    ctx.fillStyle = '#333';
-    ctx.fillRect(10, 40, 200, 20);
-    ctx.fillStyle = '#CC0000';
-    ctx.fillRect(10, 40, (computerCar.progress / FINISH_LINE) * 200, 20);
   };
 
   useEffect(() => {
@@ -476,13 +667,69 @@ const RacingGame = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let animationId: number;
+
     const gameLoop = () => {
       drawGame(ctx);
-      requestAnimationFrame(gameLoop);
+      animationId = requestAnimationFrame(gameLoop);
     };
 
     gameLoop();
-  }, [playerCar, computerCar]);
+
+    // Cleanup function to cancel animation frame
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [playerCar, computerCar, trackOffset]);
+
+       // Continuous movement system with perspective effect
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const movementInterval = setInterval(() => {
+      // Calculate track speed based on the faster car's speed
+      const fasterCarSpeed = Math.max(playerCar.speed, computerCar.speed);
+      const trackSpeed = Math.max(5, fasterCarSpeed * 0.1); // Minimum 5, scales with speed
+      
+      // Update track movement (creates illusion of forward motion)
+      setTrackOffset(prev => (prev + trackSpeed) % 100);
+
+      // Update progress based on individual car speeds
+      setPlayerCar(prev => {
+        const newProgress = prev.progress + (prev.speed * 0.01);
+        
+        if (newProgress >= FINISH_LINE) {
+          setTimeout(() => endGame('player'), 100);
+        }
+        
+        return {
+          ...prev,
+          progress: newProgress
+        };
+      });
+
+      setComputerCar(prev => {
+        const newProgress = prev.progress + (prev.speed * 0.01);
+        
+        if (newProgress >= FINISH_LINE) {
+          setTimeout(() => endGame('computer'), 100);
+        }
+        
+        return {
+          ...prev,
+          progress: newProgress
+        };
+      });
+    }, 50); // Update every 50ms for smooth movement
+
+    return () => {
+      clearInterval(movementInterval);
+    };
+  }, [gameState, playerCar.speed, computerCar.speed]);
+
+
 
   useEffect(() => {
     // Update timer display
@@ -492,18 +739,27 @@ const RacingGame = () => {
       }, 100);
       setGameTimer(timer);
     }
+    
+    // Cleanup function
+    return () => {
+      if (gameTimer) {
+        clearTimeout(gameTimer);
+      }
+    };
   }, [timeLeft, gameState]);
 
   // Track game time
   useEffect(() => {
-    let timeTimer: NodeJS.Timeout;
+    let timeTimer: NodeJS.Timeout | null = null;
     if (gameState === 'playing') {
       timeTimer = setInterval(() => {
         setGameTime(prev => prev + 0.1);
       }, 100);
     }
     return () => {
-      if (timeTimer) clearInterval(timeTimer);
+      if (timeTimer) {
+        clearInterval(timeTimer);
+      }
     };
   }, [gameState]);
 
@@ -578,58 +834,62 @@ const RacingGame = () => {
     );
   }
 
-  return (
+    return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-6 py-8">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-4">🏎️ Grammar Racing</h1>
-          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-8 mb-4">
-            <div className="text-blue-600 font-bold text-sm md:text-base">Player: {Math.round((playerCar.progress / FINISH_LINE) * 100)}%</div>
-            <div className="text-red-600 font-bold text-sm md:text-base">Computer: {Math.round((computerCar.progress / FINISH_LINE) * 100)}%</div>
-          </div>
-          <div className="text-base md:text-lg font-semibold">Time: {gameTime.toFixed(1)}s</div>
-          {bestTime && <div className="text-xs md:text-sm text-blue-600">Best: {bestTime.toFixed(1)}s</div>}
-          <div className="text-xs text-gray-500">Images loaded: {imagesLoaded ? '✅' : '⏳'}</div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-          {/* Game Canvas */}
-          <div className="flex-1">
-            <canvas
-              ref={canvasRef}
-              width={canvasDimensions.width}
-              height={canvasDimensions.height}
-              className="border-2 border-gray-300 rounded-lg mx-auto max-w-full"
-            />
-          </div>
-
-          {/* Question Panel */}
-          <div className="w-full lg:w-80">
-            <div className="bg-card rounded-lg shadow-lg p-4 md:p-6">
-              <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">What part of speech is:</h2>
-              {currentQuestion && (
-                <>
-                  <div className="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-6 p-3 md:p-4 bg-primary/10 rounded">
-                    "{currentQuestion.word}"
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 md:gap-3">
-                    {currentQuestion.options.map((option) => (
-                      <Button
-                        key={option}
-                        onClick={() => handleAnswer(option)}
-                        className="w-full py-2 md:py-3 text-sm md:text-lg"
-                        variant="outline"
-                      >
-                        {option}
-                      </Button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+      <div className="container mx-auto px-4 py-4">
+        {/* Minimal header with just title and time */}
+        <div className="text-center mb-4">
+          <h1 className="text-xl md:text-2xl font-bold mb-2">🏎️ Grammar Racing</h1>
+          <div className="flex justify-center items-center gap-4 text-sm">
+            <span className="font-semibold">Time: {gameTime.toFixed(1)}s</span>
+            {bestTime && <span className="text-blue-600">Best: {bestTime.toFixed(1)}s</span>}
           </div>
         </div>
+
+                 <div className="flex flex-col gap-4">
+           {/* Game Canvas - Centered */}
+           <div className="flex justify-center">
+             <canvas
+               ref={canvasRef}
+               width={canvasDimensions.width}
+               height={canvasDimensions.height}
+               className="border-2 border-gray-300 rounded-lg max-w-full"
+             />
+           </div>
+
+           {/* Question Panel - Below the canvas */}
+           <div className="max-w-md mx-auto w-full">
+             <div className="bg-card rounded-lg shadow-lg p-4">
+               <div className="flex justify-between items-center mb-3">
+                 <h2 className="text-sm md:text-base font-bold">What part of speech is:</h2>
+                 <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                   Q: {questionsAnswered}
+                 </div>
+               </div>
+               
+               {currentQuestion && (
+                 <>
+                   <div className="text-lg md:text-xl font-bold text-center mb-4 p-3 bg-primary/10 rounded">
+                     "{currentQuestion.word}"
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     {currentQuestion.options.map((option) => (
+                       <Button
+                         key={option}
+                         onClick={() => handleAnswer(option)}
+                         className="w-full py-2 text-sm"
+                         variant="outline"
+                       >
+                         {option}
+                       </Button>
+                     ))}
+                   </div>
+                 </>
+               )}
+             </div>
+           </div>
+         </div>
       </div>
     </div>
   );

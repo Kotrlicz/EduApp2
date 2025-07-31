@@ -70,7 +70,25 @@ const GrammarFundamentals = () => {
     fetchProgress();
   }, []);
 
-  const isLevelIIUnlocked = !loading && progress && progress.completed === true && progress.racing_game_completed === true;
+  const isLevelIIUnlocked = !loading && progress && progress.completed === true && progress.racing_game_completed === true && progress.grammar_runner_parts_of_speech_completed === true;
+
+  const handleSkillClick = (skillTitle: string) => {
+    switch (skillTitle) {
+      case "Parts of Speech":
+        navigate("/course/grammar-fundamentals/parts-of-speech");
+        break;
+      case "Articles and Determiners":
+        navigate("/course/grammar-fundamentals/articles-and-determiners");
+        break;
+      default:
+        // Coming soon for other skills
+        break;
+    }
+  };
+
+  const isSkillEnabled = (skillTitle: string) => {
+    return skillTitle === "Parts of Speech" || skillTitle === "Articles and Determiners";
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,7 +116,11 @@ const GrammarFundamentals = () => {
                   <CardTitle className="text-lg leading-tight flex items-center gap-2">
                     {skill.title}
                     {/* Show green tick if Parts of Speech is fully completed */}
-                    {skill.title === "Parts of Speech" && progress && progress.completed && progress.racing_game_completed && !loading && (
+                    {skill.title === "Parts of Speech" && progress && progress.completed && progress.racing_game_completed && progress.grammar_runner_parts_of_speech_completed && !loading && (
+                      <CheckCircle2 className="text-green-600 w-6 h-6" />
+                    )}
+                    {/* Show green tick if Articles and Determiners is completed */}
+                    {skill.title === "Articles and Determiners" && progress && progress.grammar_runner_articles_completed && !loading && (
                       <CheckCircle2 className="text-green-600 w-6 h-6" />
                     )}
                   </CardTitle>
@@ -114,16 +136,29 @@ const GrammarFundamentals = () => {
                         <div className={`w-3 h-3 rounded-full ${progress.racing_game_completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         <span>Racing game completed</span>
                       </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className={`w-3 h-3 rounded-full ${progress.grammar_runner_parts_of_speech_completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>Grammar Runner completed</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Show progress for Articles and Determiners */}
+                  {skill.title === "Articles and Determiners" && progress && !loading && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className={`w-3 h-3 rounded-full ${progress.grammar_runner_articles_completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>Grammar Runner completed</span>
+                      </div>
                     </div>
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
                   <Button
                     className="w-full mt-4 hero-button"
-                    onClick={skill.title === "Parts of Speech" ? () => navigate("/course/grammar-fundamentals/parts-of-speech") : undefined}
-                    disabled={skill.title !== "Parts of Speech"}
+                    onClick={() => handleSkillClick(skill.title)}
+                    disabled={!isSkillEnabled(skill.title)}
                   >
-                    <span>{skill.title === "Parts of Speech" ? "Start Lesson" : "Coming Soon"}</span>
+                    <span>{isSkillEnabled(skill.title) ? "Start Lesson" : "Coming Soon"}</span>
                   </Button>
                 </CardContent>
               </Card>

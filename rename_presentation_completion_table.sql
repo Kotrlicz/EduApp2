@@ -1,0 +1,2 @@
+-- Rename the presentation_completion table to articles_presentation_completion
+ALTER TABLE presentation_completion RENAME TO articles_presentation_completion; 

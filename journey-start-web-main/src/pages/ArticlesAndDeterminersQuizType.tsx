@@ -7,35 +7,17 @@ import { supabase } from "@/lib/supabaseClient";
 
 const quizTypes = [
   {
-    label: "Poznej slovní druhy",
-    value: "highlight-correct-words",
-    description: "Označ správné slovní druhy v každé větě.",
-    route: "/course/grammar-fundamentals/parts-of-speech/highlight-quiz",
-    icon: <Gamepad2 className="w-8 h-8" />,
-    gradient: "from-blue-500 to-blue-600",
-    completionKey: "completed"
-  },
-  {
-    label: "Racing Game",
-    value: "racing-game",
-    description: "Závodní hra - odpovídej na otázky a získej body za správné odpovědi.",
-    route: "/racing-game",
-    icon: <Car className="w-8 h-8" />,
-    gradient: "from-green-500 to-green-600",
-    completionKey: "racing_game_completed"
-  },
-  {
-    label: "Grammar Runner",
-    value: "grammar-runner",
-    description: "Běhej a skákej přes překážky - odpovídej na otázky o slovních druzích.",
-    route: "/grammar-runner/parts_of_speech",
+    label: "Grammar Runner - Členy",
+    value: "grammar-runner-articles",
+    description: "Běhej a skákej přes překážky - odpovídej na otázky o členech a určovacích slovech.",
+    route: "/grammar-runner/articles",
     icon: <Gamepad2 className="w-8 h-8" />,
     gradient: "from-purple-500 to-purple-600",
-    completionKey: "grammar_runner_parts_of_speech_completed"
+    completionKey: "grammar_runner_articles_completed"
   }
 ];
 
-const ChooseQuizType = () => {
+const ArticlesAndDeterminersQuizType = () => {
   const navigate = useNavigate();
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +52,7 @@ const ChooseQuizType = () => {
       navigate(quiz.route);
     } else {
       // For now, just navigate to a placeholder route for the selected quiz type
-      navigate(`/course/grammar-fundamentals/parts-of-speech/quiz/${type}`);
+      navigate(`/course/grammar-fundamentals/articles-and-determiners/quiz/${type}`);
     }
   };
 
@@ -100,10 +82,10 @@ const ChooseQuizType = () => {
         <div className="container mx-auto px-4 md:px-6 max-w-4xl">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Vyberte typ kvízu
+              Vyberte typ kvízu - Členy
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Zvolte si způsob, jakým se chcete učit o slovních druzích. Každý typ má jiný přístup k procvičování.
+              Zvolte si způsob, jakým se chcete učit o členech a určovacích slovech. Každý typ má jiný přístup k procvičování.
             </p>
           </div>
           
@@ -161,4 +143,4 @@ const ChooseQuizType = () => {
   );
 };
 
-export default ChooseQuizType; 
+export default ArticlesAndDeterminersQuizType;

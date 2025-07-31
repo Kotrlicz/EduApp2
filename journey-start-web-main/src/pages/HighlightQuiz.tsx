@@ -108,6 +108,12 @@ const HighlightQuiz = () => {
       setCorrectInARow(newStreak);
       const completed = newStreak >= 10;
       const newBestStreak = progress && progress.best_streak ? Math.max(progress.best_streak, newStreak) : newStreak;
+      
+      // Check if all three quiz types are completed
+      const allQuizzesCompleted = completed && 
+        progress?.racing_game_completed === true && 
+        progress?.grammar_runner_parts_of_speech_completed === true;
+      
       const { data, error } = await supabase
         .from("quiz_progress")
         .upsert([
@@ -116,6 +122,7 @@ const HighlightQuiz = () => {
             streak: newStreak,
             completed,
             best_streak: newBestStreak,
+            parts_of_speech_course_completed: allQuizzesCompleted, // New field for overall course completion
             updated_at: new Date().toISOString(),
           },
         ], { onConflict: "user_id" })
@@ -133,6 +140,7 @@ const HighlightQuiz = () => {
             streak: 0,
             completed: false,
             best_streak: progress && progress.best_streak ? progress.best_streak : 0,
+            parts_of_speech_course_completed: false, // Reset overall completion
             updated_at: new Date().toISOString(),
           },
         ], { onConflict: "user_id" })
